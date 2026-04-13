@@ -1,0 +1,33 @@
+{
+  "name": "flow-clinics-landing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "fonts:setup": "node scripts/setup-visby-fonts.mjs",
+    "prebuild": "node scripts/setup-visby-fonts.mjs",
+    "predev": "node scripts/setup-visby-fonts.mjs",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.60",
+    "ai": "^6.0.153",
+    "next": "16.2.2",
+    "next-intl": "^4.9.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

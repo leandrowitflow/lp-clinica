@@ -1,0 +1,9 @@
+Fonts are served from this folder as /fonts/visby/<filename>
+
+Quick setup:
+  1. Put your font folder named Visby (or visby) at the project root, with .woff2 / .woff / .otf inside (any subfolders are OK).
+  2. Run:  npm run fonts:setup
+
+That copies everything here, removes the root Visby folder, and regenerates app/visby-fonts.css.
+
+You can also drop files here manually and run npm run fonts:setup again (only copies from root Visby if that folder exists).
