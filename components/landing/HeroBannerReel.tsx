@@ -21,6 +21,8 @@ export function HeroBannerReel({ ariaLabel }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const ratioRef = useRef(0);
+  /** Browsers block unmuted autoplay — start muted, then unmute only after playback has begun. */
+  const [playbackStarted, setPlaybackStarted] = useState(false);
   const [allowSound, setAllowSound] = useState(false);
 
   const syncSound = useCallback(() => {
@@ -54,13 +56,37 @@ export function HeroBannerReel({ ariaLabel }: Props) {
     };
   }, [syncSound]);
 
+  /** Muted autoplay is reliable; call play() when the element can play. */
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !allowSound) return;
-    void video.play().catch(() => {
-      /* autoplay policies may block audio until interaction */
-    });
-  }, [allowSound]);
+    if (!video) return;
+
+    const tryPlay = () => {
+      void video.play().catch(() => {
+        /* ignored — browser may still block until gesture */
+      });
+    };
+
+    tryPlay();
+    video.addEventListener("loadeddata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
+
+    const onPlaying = () => setPlaybackStarted(true);
+    video.addEventListener("playing", onPlaying, { once: true });
+
+    return () => {
+      video.removeEventListener("loadeddata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
+      video.removeEventListener("playing", onPlaying);
+    };
+  }, []);
+
+  /** After playback begins, unmute can pause some browsers — nudge play when muted/allowSound changes. */
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !playbackStarted) return;
+    void video.play().catch(() => {});
+  }, [allowSound, playbackStarted]);
 
   const src = reelSrc();
 
@@ -119,8 +145,8 @@ export function HeroBannerReel({ ariaLabel }: Props) {
                 autoPlay
                 loop
                 playsInline
-                muted={!allowSound}
-                preload="metadata"
+                muted={!playbackStarted || !allowSound}
+                preload="auto"
                 aria-label={ariaLabel}
               />
               {/* Gesture / home indicator */}
