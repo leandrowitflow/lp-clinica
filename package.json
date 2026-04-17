@@ -6,9 +6,9 @@
     "fonts:setup": "node scripts/setup-visby-fonts.mjs",
     "prebuild": "node scripts/setup-visby-fonts.mjs",
     "predev": "node scripts/setup-visby-fonts.mjs",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node ./node_modules/next/dist/bin/next dev",
+    "build": "node ./node_modules/next/dist/bin/next build",
+    "start": "node ./node_modules/next/dist/bin/next start",
     "lint": "eslint"
   },
   "dependencies": {

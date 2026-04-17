@@ -23,7 +23,13 @@ const nextConfig: NextConfig = {
     if (!isDev) return [];
     return [
       {
-        source: "/banner.jpeg",
+        source: "/BannerClinicas.png",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+        ],
+      },
+      {
+        source: "/Reel_Clinica.mp4",
         headers: [
           { key: "Cache-Control", value: "no-store, must-revalidate" },
         ],

@@ -53,6 +53,9 @@ Thumbs.db
 Desktop.ini
 *.pem
 
+# Hero reel — over GitHub 100 MB limit; keep locally or set NEXT_PUBLIC_HERO_REEL_SRC
+public/Reel_Clinica.mp4
+
 # Licensed / local font files (do not commit commercial fonts). Instructions: public/fonts/visby/ADD-FONTS.txt — run npm run fonts:setup
 public/fonts/**/*.woff2
 public/fonts/**/*.woff

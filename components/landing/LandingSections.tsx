@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import { HeroBannerReel } from "@/components/landing/HeroBannerReel";
 import { ClinicDiagnosticWizard } from "@/components/diagnostic/ClinicDiagnosticWizard";
 import { DiagnosticStartLink } from "@/components/DiagnosticStartLink";
 import { getFlowAgentUrl } from "@/lib/flow-agent-url";
@@ -63,22 +64,7 @@ export async function HeroSection() {
       className="border-b border-flow-border bg-white pt-0"
       aria-labelledby="hero-heading"
     >
-      {/* Full-bleed 16:9: same aspect as a 16:9 asset → image fills edge-to-edge, no side bars. */}
-      <div className="relative hidden aspect-video w-full md:block">
-        {/* Unoptimized: `/_next/image` re-encodes (WebP/AVIF + resize); that can look worse than the JPEG you see in Preview. */}
-        <Image
-          src="/banner.jpeg"
-          alt={t("bannerAlt")}
-          fill
-          priority
-          unoptimized
-          className="object-cover object-center"
-        />
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[32%] min-h-[8rem] bg-[linear-gradient(to_top,#fff_0%,#fff_3%,rgba(255,255,255,0.92)_14%,rgba(255,255,255,0.55)_30%,rgba(255,255,255,0.18)_52%,rgba(255,255,255,0.04)_74%,transparent_100%)] sm:min-h-[10rem] lg:min-h-[11.5rem]"
-          aria-hidden
-        />
-      </div>
+      <HeroBannerReel ariaLabel={t("bannerAlt")} />
 
       <div
         className={`${contentMax} pb-12 pt-10 sm:pb-16 sm:pt-12 md:pt-10`}
