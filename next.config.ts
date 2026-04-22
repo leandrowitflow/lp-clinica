@@ -6,6 +6,9 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/L_02.png" }];
+  },
   images: {
     /** next/image only allows listed quality values (default is [75] only). */
     qualities: [75, 85, 90, 92, 95, 100],
@@ -23,13 +26,13 @@ const nextConfig: NextConfig = {
     if (!isDev) return [];
     return [
       {
-        source: "/BannerClinicas.png",
+        source: "/L_02.png",
         headers: [
           { key: "Cache-Control", value: "no-store, must-revalidate" },
         ],
       },
       {
-        source: "/Reel_Clinica.mp4",
+        source: "/BannerClinicas.png",
         headers: [
           { key: "Cache-Control", value: "no-store, must-revalidate" },
         ],

@@ -1,100 +1,132 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
-
-function reelSrc(): string {
-  const fromEnv = process.env.NEXT_PUBLIC_HERO_REEL_SRC;
-  if (typeof fromEnv === "string" && fromEnv.length > 0) {
-    return fromEnv;
-  }
-  return "/Reel_Clinica.mp4";
-}
+import { useEffect, useRef } from "react";
 
 type Props = {
   ariaLabel: string;
 };
 
-const VISIBILITY_SOUND_THRESHOLD = 0.45;
+const HERO_YOUTUBE_IFRAME_ID = "hero-youtube-embed";
+
+/** Default: Flow reel Shorts — https://youtube.com/shorts/PHBbd0egBp8 */
+function heroYoutubeVideoId(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_HERO_YOUTUBE_ID;
+  if (typeof fromEnv === "string" && fromEnv.trim().length > 0) {
+    return fromEnv.trim();
+  }
+  return "PHBbd0egBp8";
+}
+
+function embedOrigin(): string | undefined {
+  const u = process.env.NEXT_PUBLIC_SITE_URL;
+  if (typeof u !== "string" || !/^https?:\/\//.test(u)) return undefined;
+  return u.replace(/\/$/, "");
+}
+
+function heroYoutubeEmbedSrc(): string {
+  const id = heroYoutubeVideoId();
+  const params = new URLSearchParams({
+    autoplay: "1",
+    /** Required for autoplay in most browsers; we try to unmute via IFrame API right after ready. */
+    mute: "1",
+    loop: "1",
+    playlist: id,
+    playsinline: "1",
+    controls: "1",
+    modestbranding: "1",
+    rel: "0",
+    enablejsapi: "1",
+  });
+  const origin = embedOrigin();
+  if (origin) params.set("origin", origin);
+  return `https://www.youtube.com/embed/${id}?${params.toString()}`;
+}
+
+type YTPlayerInstance = {
+  unMute: () => void;
+  setVolume: (v: number) => void;
+  destroy?: () => void;
+};
+
+declare global {
+  interface Window {
+    YT?: {
+      Player: new (
+        id: string,
+        opts: {
+          events?: { onReady?: (e: { target: YTPlayerInstance }) => void };
+        },
+      ) => YTPlayerInstance;
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
 
 export function HeroBannerReel({ ariaLabel }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const ratioRef = useRef(0);
-  /** Browsers block unmuted autoplay — start muted, then unmute only after playback has begun. */
-  const [playbackStarted, setPlaybackStarted] = useState(false);
-  const [allowSound, setAllowSound] = useState(false);
-
-  const syncSound = useCallback(() => {
-    const ok =
-      document.visibilityState === "visible" &&
-      ratioRef.current >= VISIBILITY_SOUND_THRESHOLD;
-    setAllowSound(ok);
-  }, []);
+  const playerRef = useRef<YTPlayerInstance | null>(null);
+  const scriptInjected = useRef(false);
 
   useEffect(() => {
-    const root = containerRef.current;
-    const video = videoRef.current;
-    if (!root || !video) return;
+    let disposed = false;
+    let restoreYtCallback: (() => void) | undefined;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        ratioRef.current = entry?.intersectionRatio ?? 0;
-        syncSound();
-      },
-      { threshold: [0, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 1] },
-    );
+    const initPlayer = () => {
+      if (disposed || !window.YT?.Player) return;
+      const el = document.getElementById(HERO_YOUTUBE_IFRAME_ID);
+      if (!el || playerRef.current) return;
 
-    observer.observe(root);
-    const onVisibility = () => syncSound();
-    document.addEventListener("visibilitychange", onVisibility);
+      try {
+        const player = new window.YT.Player(HERO_YOUTUBE_IFRAME_ID, {
+          events: {
+            onReady: (e) => {
+              if (disposed) return;
+              e.target.unMute();
+              e.target.setVolume(100);
+            },
+          },
+        });
+        playerRef.current = player;
+      } catch {
+        /* iframe API unavailable or double-init */
+      }
+    };
+
+    const onGlobalReady = () => {
+      initPlayer();
+    };
+
+    if (window.YT?.Player) {
+      queueMicrotask(initPlayer);
+    } else {
+      const previous = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        previous?.();
+        onGlobalReady();
+      };
+      restoreYtCallback = () => {
+        window.onYouTubeIframeAPIReady = previous;
+      };
+
+      if (!scriptInjected.current) {
+        scriptInjected.current = true;
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        tag.async = true;
+        document.head.appendChild(tag);
+      }
+    }
 
     return () => {
-      observer.disconnect();
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [syncSound]);
-
-  /** Muted autoplay is reliable; call play() when the element can play. */
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const tryPlay = () => {
-      void video.play().catch(() => {
-        /* ignored — browser may still block until gesture */
-      });
-    };
-
-    tryPlay();
-    video.addEventListener("loadeddata", tryPlay);
-    video.addEventListener("canplay", tryPlay);
-
-    const onPlaying = () => setPlaybackStarted(true);
-    video.addEventListener("playing", onPlaying, { once: true });
-
-    return () => {
-      video.removeEventListener("loadeddata", tryPlay);
-      video.removeEventListener("canplay", tryPlay);
-      video.removeEventListener("playing", onPlaying);
+      disposed = true;
+      playerRef.current?.destroy?.();
+      playerRef.current = null;
+      restoreYtCallback?.();
     };
   }, []);
-
-  /** After playback begins, unmute can pause some browsers — nudge play when muted/allowSound changes. */
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !playbackStarted) return;
-    void video.play().catch(() => {});
-  }, [allowSound, playbackStarted]);
-
-  const src = reelSrc();
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full overflow-hidden min-[1000px]:aspect-[1.9/1] min-[1000px]:min-h-0"
-    >
+    <div className="relative w-full overflow-hidden min-[1000px]:aspect-[1.9/1] min-[1000px]:min-h-0">
       {/* Desktop: wide banner art (headline baked into PNG, clear zone right) */}
       <div className="pointer-events-none absolute inset-0 hidden min-[1000px]:block">
         <Image
@@ -124,36 +156,38 @@ export function HeroBannerReel({ ariaLabel }: Props) {
       <div className="relative z-20 flex min-h-[min(72vw,420px)] items-center justify-center px-4 pb-14 pt-10 min-[1000px]:absolute min-[1000px]:inset-0 min-[1000px]:min-h-0 min-[1000px]:items-end min-[1000px]:justify-end min-[1000px]:p-0 min-[1000px]:pb-[5%] min-[1000px]:pr-[max(1rem,4vw)]">
         <div
           className="relative w-[min(72vw,260px)] max-w-[280px] shrink-0 min-[1000px]:h-[min(78%,680px)] min-[1000px]:w-auto min-[1000px]:max-w-[min(54vw,560px)] min-[1000px]:self-end"
-          style={{ aspectRatio: "9 / 16" }}
+          style={{ aspectRatio: "9 / 18.6" }}
         >
-          {/* Modern handset: dark titanium-style frame, thin bezel, island + gesture bar on OLED */}
-          <div className="relative flex h-full w-full flex-col rounded-[2.75rem] bg-[linear-gradient(155deg,#4a4a52_0%,#2e2e33_38%,#17171a_100%)] p-[10px] shadow-[0_36px_72px_-22px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.14)] ring-1 ring-white/[0.1] sm:rounded-[2.95rem] sm:p-[11px] min-[1000px]:rounded-[3.1rem] min-[1000px]:p-[11px]">
+          {/* Body: titanium shell → black bezel → display (concentric radii read like OEM glass) */}
+          <div className="relative flex h-full w-full flex-col rounded-[2.65rem] bg-gradient-to-b from-[#45454a] via-[#252528] to-[#0c0c0e] p-[11px] shadow-[0_32px_70px_-18px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.35)] ring-1 ring-white/[0.12] sm:rounded-[2.85rem] sm:p-3 min-[1000px]:rounded-[2.95rem] min-[1000px]:p-3">
             <div
-              className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_2px_0_14px_-4px_rgba(255,255,255,0.07),inset_-3px_0_16px_-6px_rgba(0,0,0,0.45)]"
+              className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_3px_0_18px_-6px_rgba(255,255,255,0.08),inset_-4px_0_20px_-8px_rgba(0,0,0,0.5)]"
               aria-hidden
             />
-            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2.2rem] bg-black ring-1 ring-white/[0.07] sm:rounded-[2.35rem] min-[1000px]:rounded-[2.45rem]">
-              {/* Dynamic Island – floats over content like current iPhone */}
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2.05rem] bg-[#050505] p-[7px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] ring-1 ring-black/80 sm:rounded-[2.15rem] sm:p-2 min-[1000px]:rounded-[2.2rem]">
+              {/* Top bezel: earpiece / sensor strip (not over the iframe) */}
               <div
-                className="pointer-events-none absolute left-1/2 top-[10px] z-20 h-[11px] w-[min(34%,8rem)] min-w-[5.25rem] -translate-x-1/2 rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_2px_8px_rgba(0,0,0,0.4)] sm:top-3 sm:h-3"
+                className="pointer-events-none flex shrink-0 flex-col items-center gap-1 pb-1.5 pt-0.5"
                 aria-hidden
-              />
-              <video
-                ref={videoRef}
-                className="min-h-0 w-full flex-1 object-contain"
-                src={src}
-                autoPlay
-                loop
-                playsInline
-                muted={!playbackStarted || !allowSound}
-                preload="auto"
-                aria-label={ariaLabel}
-              />
-              {/* Gesture / home indicator */}
-              <div
-                className="pointer-events-none absolute bottom-[9px] left-1/2 z-20 h-1 w-[min(30%,7.5rem)] max-w-[7.5rem] -translate-x-1/2 rounded-full bg-white/[0.38] sm:bottom-2.5"
-                aria-hidden
-              />
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1 w-1 rounded-full bg-zinc-700 ring-1 ring-zinc-900/80" />
+                  <div className="h-1.5 w-14 rounded-full bg-zinc-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.85)] ring-1 ring-zinc-800/90 sm:w-16" />
+                  <span className="h-1 w-1 rounded-full bg-zinc-700 ring-1 ring-zinc-900/80" />
+                </div>
+              </div>
+              {/* Tight bottom inset: just enough so rounded corners don’t clip YouTube’s bar */}
+              <div className="relative z-0 min-h-0 flex-1 px-0.5 pb-3 pt-0 sm:px-1 sm:pb-3.5">
+                <iframe
+                  id={HERO_YOUTUBE_IFRAME_ID}
+                  title={ariaLabel}
+                  src={heroYoutubeEmbedSrc()}
+                  className="h-full w-full rounded-[0.55rem] border-0 shadow-inner sm:rounded-md"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </div>
             </div>
           </div>
         </div>
