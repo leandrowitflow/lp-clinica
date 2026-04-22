@@ -155,8 +155,8 @@ export function HeroBannerReel({ ariaLabel }: Props) {
       {/* Phone + reel: centered on small screens, bottom-right on large (height-capped so it never exceeds the strip) */}
       <div className="relative z-20 flex min-h-[min(72vw,420px)] items-center justify-center px-4 pb-14 pt-10 min-[1000px]:absolute min-[1000px]:inset-0 min-[1000px]:min-h-0 min-[1000px]:items-end min-[1000px]:justify-end min-[1000px]:p-0 min-[1000px]:pb-[5%] min-[1000px]:pr-[max(1rem,4vw)]">
         <div
-          className="relative w-[min(72vw,260px)] max-w-[280px] shrink-0 min-[1000px]:h-[min(78%,680px)] min-[1000px]:w-auto min-[1000px]:max-w-[min(54vw,560px)] min-[1000px]:self-end"
-          style={{ aspectRatio: "9 / 18.6" }}
+          className="relative w-[min(78vw,288px)] max-w-[320px] shrink-0 min-[1000px]:h-[min(78%,680px)] min-[1000px]:w-auto min-[1000px]:max-w-[min(62vw,640px)] min-[1000px]:self-end"
+          style={{ aspectRatio: "10 / 18.45" }}
         >
           {/* Body: titanium shell → black bezel → display (concentric radii read like OEM glass) */}
           <div className="relative flex h-full w-full flex-col rounded-[2.65rem] bg-gradient-to-b from-[#45454a] via-[#252528] to-[#0c0c0e] p-[11px] shadow-[0_32px_70px_-18px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.35)] ring-1 ring-white/[0.12] sm:rounded-[2.85rem] sm:p-3 min-[1000px]:rounded-[2.95rem] min-[1000px]:p-3">
