@@ -1,7 +1,12 @@
 import Script from "next/script";
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
-const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+/** Default GA4 property for this site; override with NEXT_PUBLIC_GA_MEASUREMENT_ID, or set that var to "" to disable. */
+const DEFAULT_GA_MEASUREMENT_ID = "G-YJ85SND4WV";
+const gaId =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID !== undefined
+    ? process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || undefined
+    : DEFAULT_GA_MEASUREMENT_ID;
 
 export function GoogleTags() {
   if (gtmId) {

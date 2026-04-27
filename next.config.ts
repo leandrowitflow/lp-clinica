@@ -7,6 +7,7 @@ const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig: NextConfig = {
   async rewrites() {
+    /** Browsers request /favicon.ico; serve the same asset as metadata icons. */
     return [{ source: "/favicon.ico", destination: "/L_02.png" }];
   },
   images: {
