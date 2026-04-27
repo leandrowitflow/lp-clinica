@@ -3,7 +3,12 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { Montserrat } from "next/font/google";
 import { notFound } from "next/navigation";
-import { GoogleTagManagerNoScript, GoogleTags } from "@/components/GoogleTags";
+import {
+  GoogleTagManagerNoScript,
+  GoogleTags,
+  MetaPixel,
+  MetaPixelNoScript,
+} from "@/components/GoogleTags";
 import { routing } from "@/i18n/routing";
 
 /** Fallback when Visby CF .woff2 files are not yet in /public/fonts/visby/ */
@@ -35,7 +40,9 @@ export default async function LocaleLayout({ children, params }: Props) {
     <html lang={locale} className={`${montserrat.variable} h-full`}>
       <body className="min-h-full bg-flow-bg text-flow-text antialiased">
         <GoogleTags />
+        <MetaPixel />
         <GoogleTagManagerNoScript />
+        <MetaPixelNoScript />
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>
